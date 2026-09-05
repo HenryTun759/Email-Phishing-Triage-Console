@@ -1,7 +1,16 @@
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(30), default="analyst")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class Target(Base):
     __tablename__ = "targets"
@@ -31,6 +40,8 @@ class Finding(Base):
     check_id: Mapped[str] = mapped_column(String(80), index=True)
     title: Mapped[str] = mapped_column(String(200))
     severity: Mapped[str] = mapped_column(String(20), index=True)
+    cvss_score: Mapped[float | None] = mapped_column(Float)
+    cvss_vector: Mapped[str | None] = mapped_column(String(120))
     evidence: Mapped[str] = mapped_column(Text)
     remediation: Mapped[str] = mapped_column(Text)
     scan: Mapped[Scan] = relationship(back_populates="findings")
