@@ -25,24 +25,46 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_access_token(user: User) -> str:
     now = datetime.now(timezone.utc)
-    payload = {"sub": str(user.id), "username": user.username, "role": user.role,
-               "iat": now, "exp": now + timedelta(minutes=settings.access_token_minutes)}
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    payload = {
+        "sub": str(user.id),
+        "username": user.username,
+        "role": user.role,
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.access_token_minutes),
+    }
+    return jwt.encode(
+        payload,
+        settings.jwt_secret.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
 
 
 def _decode(token: str) -> dict:
     try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return jwt.decode(
+            token,
+            settings.jwt_secret.get_secret_value(),
+            algorithms=[settings.jwt_algorithm],
+        )
     except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired authentication token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired authentication token",
+        )
 
 
-def get_current_user(token: Annotated[str | None, Depends(oauth2_scheme)],
-                     access_token: Annotated[str | None, Cookie()] = None,
-                     db: Session = Depends(get_db)) -> User:
+def get_current_user(
+    token: Annotated[str | None, Depends(oauth2_scheme)],
+    access_token: Annotated[str | None, Cookie()] = None,
+    db: Session = Depends(get_db),
+) -> User:
     raw = token or access_token
     if not raw:
-        raise HTTPException(status_code=401, detail="Authentication required", headers={"WWW-Authenticate": "Bearer"})
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     claims = _decode(raw)
     user = db.get(User, int(claims["sub"]))
     if not user or not user.is_active:
