@@ -9,6 +9,12 @@ SECURITY_HEADERS = {
     "Referrer-Policy": ("low", "Set an explicit restrictive Referrer-Policy."),
 }
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, "Redirects disabled by scanner safety policy", headers, fp)
+
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
 class HttpSecurityCheck(ScannerCheck):
     check_id = "http-headers"
     def run(self, host: str, port: int, timeout: float):
@@ -17,8 +23,8 @@ class HttpSecurityCheck(ScannerCheck):
             url = f"{scheme}://{host}:{port}/"
             try:
                 ctx = ssl.create_default_context() if scheme == "https" else None
-                req = urllib.request.Request(url, method="GET", headers={"User-Agent": "LabVuln/1.0 authorized-lab-scanner"})
-                with urllib.request.urlopen(req, timeout=timeout, context=ctx) as response:
+                req = urllib.request.Request(url, method="GET", headers={"User-Agent": "LabVuln/1.1 authorized-lab-scanner"})
+                with OPENER.open(req, timeout=timeout, context=ctx) as response:
                     headers = response.headers
                     for header, (severity, remediation) in SECURITY_HEADERS.items():
                         if header not in headers:
