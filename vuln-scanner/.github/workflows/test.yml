@@ -1,0 +1,23 @@
+name: test
+on:
+  push:
+    paths: ["vuln-scanner/**"]
+  pull_request:
+    paths: ["vuln-scanner/**"]
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vuln-scanner
+    env:
+      JWT_SECRET: ci-test-secret
+      ADMIN_PASSWORD: CI-Test-Password-123!
+      APP_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: pytest -q
