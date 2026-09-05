@@ -1,0 +1,16 @@
+services:
+  scanner:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////data/labvuln.db
+      ALLOW_PUBLIC_TARGETS: "false"
+      SCAN_TIMEOUT_SECONDS: "8"
+      MAX_CONCURRENT_SCANS: "4"
+    volumes:
+      - scanner_data:/data
+    restart: unless-stopped
+
+volumes:
+  scanner_data:
