@@ -1,5 +1,13 @@
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=8, max_length=128)
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 class TargetCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
@@ -20,6 +28,8 @@ class FindingOut(BaseModel):
     check_id: str
     title: str
     severity: str
+    cvss_score: float | None
+    cvss_vector: str | None
     evidence: str
     remediation: str
     model_config = {"from_attributes": True}
@@ -31,5 +41,5 @@ class ScanOut(BaseModel):
     started_at: datetime | None
     finished_at: datetime | None
     error: str | None
-    findings: list[FindingOut] = []
+    findings: list[FindingOut] = Field(default_factory=list)
     model_config = {"from_attributes": True}
