@@ -11,7 +11,7 @@ jobs:
       run:
         working-directory: vuln-scanner
     env:
-      JWT_SECRET: ci-test-secret
+      JWT_SECRET: ci-test-secret-that-is-at-least-32-characters-long
       ADMIN_PASSWORD: CI-Test-Password-123!
       APP_ENV: test
     steps:
