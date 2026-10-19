@@ -32,7 +32,7 @@ Open **http://127.0.0.1:8765**. On Windows, use `py app.py` if `python3` is unav
 
 The server binds to loopback only. Keep it local: it is not designed for public hosting or multi-user deployments.
 
-## Try it in two minutes
+## Quick analysis in two minutes
 
 1. Select **Credential lure** to load and analyze a synthetic email.
 2. Inspect the **High / 100** review priority and the evidence behind each rule.
@@ -42,6 +42,29 @@ The server binds to loopback only. Keep it local: it is not designed for public 
 6. Compare **Suspicious invoice** (55 / High) and **Routine update** (0 / Low).
 
 All samples use reserved example domains and documentation IP addresses. The invoice attachment contains inert training text. No real phishing campaign or malware is included.
+
+## Five-stage case workflow
+
+The application follows the supplied SOC workflow diagram:
+
+| Stage | Working feature | Required before continuing |
+| --- | --- | --- |
+| 1. Assign alert | Save an analyzed email with an alert reference and assigned analyst | Reference and analyst |
+| 2. Alert triaging process | Record analyst priority, category and initial impact assessment | Category and notes |
+| 3. Analyze email artifacts | **3.1** Record sender-reputation evidence; **3.2** review attachment inventory | Sender assessment, source and notes; attachment review and notes |
+| 4. Investigate related alerts | Match saved local cases by sender address, URL host or attachment hash; record external references | Review confirmation and scope/findings |
+| 5. Case reporting | Save final disposition, actions and handoff; export all five stages | Final disposition and report |
+
+Choose a sample, enter an alert reference and analyst in the workflow panel, and click **Save assigned case**. Use **Save & continue** through each stage. In stage 5, enter the final report in the panel below the evidence and click **Complete case**.
+
+- **Save stage** persists partial work; use **Saved cases** to resume after a browser or server restart.
+- Completed cases are read-only. Create a new alert for follow-up work.
+- The server enforces stage requirements and rejects stale updates from another browser tab.
+- Exports include the saved workflow, evidence-source references, related-case snapshot and activity history. Save edits before exporting; unfinished cases are labeled as drafts in Markdown.
+- **Sender reputation is an analyst review**, not an automatic external lookup. Record the trusted source or choose **Inconclusive** when verification is unavailable.
+- **Related alerts are local matches**, not a SIEM search or proof of a coordinated campaign.
+
+See [workflow and API documentation](docs/WORKFLOW.md).
 
 ## What works
 
@@ -53,7 +76,7 @@ All samples use reserved example domains and documentation IP addresses. The inv
 | URL analysis | HTTP(S) extraction, defanging, visible-link mismatch, IP destinations, user-info and punycode signals |
 | Attachment evidence | Name, MIME type, decoded byte count and SHA-256; risky/double extensions |
 | Explainable scoring | Named rules, visible points, evidence, capped score and recommended next steps |
-| Analyst workflow | Investigation tabs, disposition, notes, Markdown and JSON downloads |
+| Analyst workflow | Five enforced stages, assigned owner, local saved cases, disposition, notes, Markdown and JSON reports |
 | Safe display | Text-only DOM rendering, no remote images, no link retrieval, no attachment execution |
 | Verification | Python unit/integration tests, browser smoke test, GitHub Actions |
 
@@ -67,6 +90,8 @@ Browser (vanilla HTML/CSS/JS)
   → analyst review and local report download
 ```
 
+- `triage/cases.py` — SQLite case storage, stage validation, related-case matching and revision checks.
+- `web/workflow.js` — five-stage form and saved-case workflow.
 - `triage/analyzer.py` — parsing, evidence extraction and scoring; no networking code.
 - `app.py` — fixed-route local HTTP service with request limits and security headers.
 - `web/` — responsive dashboard; untrusted fields are inserted with `textContent`.
@@ -89,6 +114,7 @@ npm install --no-save --package-lock=false playwright
 npx playwright install chromium
 # Start python3 app.py in another terminal, then:
 node tests/browser-smoke.cjs
+node tests/workflow-browser.cjs
 ```
 
 The browser test covers sample analysis, tabs, notes, report downloads, file upload, script-injection handling, validation errors, reset and mobile overflow. Python CI runs on 3.10, 3.12 and 3.13.
@@ -101,7 +127,7 @@ The browser test covers sample analysis, tabs, notes, report downloads, file upl
 - Exact hostname/domain comparisons can flag legitimate third-party services and subdomains. Brand ownership and public-suffix relationships are not resolved.
 - Only HTTP(S) text and HTML anchor URLs are extracted. QR codes, images, obfuscation, archives and attachment contents are not analyzed. Encrypted emails are not decrypted.
 - Attached multipart/email containers are listed but not recursively investigated or hashed as decoded files. Analyze those separately in approved tooling.
-- Notes and results live in browser memory and are lost on refresh. Export before clearing or closing. Reports may contain sensitive information.
+- Quick-analysis notes are temporary. Explicitly saved cases persist in `data/cases.sqlite3`, including extracted metadata, body preview and notes. Original email bytes and attachment payloads are not stored. Treat the database and exported reports as sensitive.
 - This is a local single-user tool with a small HTTP server, not a hardened hosted service. Read [SECURITY.md](SECURITY.md).
 
 ## Portfolio discussion
@@ -113,4 +139,4 @@ Be ready to explain why a low score does not mean safe, why authentication heade
 - Evaluate false positives and false negatives against an authorized, labeled corpus.
 - Add configurable organization domains and a public-suffix-aware comparison.
 - Add opt-in hash-only reputation enrichment with explicit data-sharing controls.
-- Add case persistence, access control and audit history only if moving beyond a local lab.
+- Add authenticated access control, protected audit storage and retention management before considering multi-user use.

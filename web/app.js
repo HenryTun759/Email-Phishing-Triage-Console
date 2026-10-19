@@ -6,7 +6,7 @@ let busy = false;
 const MAX_BYTES = 2 * 1024 * 1024;
 function el(tag, text, cls) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (cls) node.className = cls; return node; }
 function size() { $('byte-count').textContent = `${uploaded ? uploaded.byteLength : new TextEncoder().encode($('raw-email').value).length} bytes`; }
-function resetResult() { result = null; $('results').hidden = true; $('empty').hidden = false; $('notes').value = ''; $('disposition').selectedIndex = 0; }
+function resetResult() { if (typeof resetWorkflow === 'function') resetWorkflow(); result = null; $('results').hidden = true; $('empty').hidden = false; $('notes').value = ''; $('disposition').selectedIndex = 0; }
 function clear() { uploaded = null; $('raw-email').value = ''; $('email-file').value = ''; $('filename').textContent = 'Maximum file size 2 MiB'; $('error').textContent = ''; resetResult(); size(); }
 function setBusy(value) { busy = value; document.querySelectorAll('button[data-sample], #analyze, #clear, #email-file, #raw-email').forEach(n => n.disabled = value); $('analyze').textContent = value ? 'Analyzing…' : 'Analyze message →'; }
 $('raw-email').addEventListener('input', () => { uploaded = null; $('filename').textContent = 'Using edited text source'; resetResult(); size(); });
@@ -86,8 +86,9 @@ function render() {
   headers.append(el('h3', 'Received chain · source order, unverified'), el('pre', result.received.join('\n\n') || 'No Received headers.'));
   $('view-message').replaceChildren(el('p', 'Plain-text preview only. HTML is never rendered; preview is capped at 18,000 characters.'), el('pre', result.body_preview || '(No text body)'));
   activate('findings');
+  if (typeof renderWorkflow === 'function') renderWorkflow();
 }
-function report() { return {...result, analyst: {disposition:$('disposition').value, notes:$('notes').value, recorded_at:new Date().toISOString()}}; }
+function report() { const data = {...result, analyst: {disposition:$('disposition').value, notes:$('notes').value, recorded_at:new Date().toISOString()}}; return typeof workflowReport === 'function' ? workflowReport(data) : data; }
 // Encode untrusted strings so Markdown exports do not create active links, HTML, or headings.
 function safeMD(value) { return String(value).replace(/[^a-zA-Z0-9 ,:;!?\n\-]/g, c => `&#${c.codePointAt(0)};`).replace(/\n/g, '\n> '); }
 function markdown(data) {
@@ -95,9 +96,9 @@ function markdown(data) {
 }
 function download(extension) {
   if (!result) return;
-  const data = report(), content = extension === 'json' ? JSON.stringify(data, null, 2) : markdown(data);
+  const data = report(), content = extension === 'json' ? JSON.stringify(data, null, 2) : markdown(data) + (typeof workflowMarkdown === 'function' ? workflowMarkdown(data.workflow) : '');
   const blob = new Blob([content], {type: extension === 'json' ? 'application/json' : 'text/markdown'});
-  const url = URL.createObjectURL(blob), anchor = el('a'); anchor.href = url; anchor.download = `${data.case_id}.${extension}`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const url = URL.createObjectURL(blob), anchor = el('a'); anchor.href = url; anchor.download = `${data.workflow ? data.workflow.id : data.case_id}.${extension}`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 $('export-md').addEventListener('click', () => download('md'));
 $('export-json').addEventListener('click', () => download('json'));

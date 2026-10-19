@@ -16,3 +16,7 @@
 - What would production require? Stronger parsing isolation/resource bounds, authentication, authorization, audit trails, retention controls, monitoring, secure deployment and operational validation.
 
 Describe the project honestly, including assistance used in its implementation. Practice explaining and modifying a rule yourself before listing it as a skill demonstration.
+
+## Demonstrate the diagram workflow
+
+Assign the synthetic email to `DEMO-001` and your analyst name. Move through triage, document sender reputation as inconclusive if you have no trusted lookup, and review the attachment inventory. Save and reload the case to show persistence. In the related-alert stage, explain exact matches and why a common sender or hostname is not conclusive. Complete the report with the actions you actually performed and export the five-stage record. The activity history records local workflow events; it is not an authenticated audit trail.
