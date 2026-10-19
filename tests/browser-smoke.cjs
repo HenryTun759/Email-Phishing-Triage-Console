@@ -29,6 +29,7 @@ const path = require('node:path');
       if (extension === 'json') assert.equal(JSON.parse(content).score, 100);
     }
     await fs.mkdir(path.join(__dirname, '..', 'docs'), { recursive: true });
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(__dirname, '..', 'docs', 'console.png'), fullPage: true });
     await page.locator('[data-sample="invoice"]').click();
     await page.waitForFunction(() => document.querySelector('#score').textContent === '55');
