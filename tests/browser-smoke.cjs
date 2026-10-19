@@ -1,0 +1,65 @@
+const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto('http://127.0.0.1:8765');
+    await page.locator('[data-sample="credential"]').click();
+    await page.waitForFunction(() => document.querySelector('#score').textContent === '100');
+    assert.equal(await page.locator('#risk').textContent(), 'High priority');
+    await page.locator('[data-tab="indicators"]').click();
+    assert.match(await page.locator('#view-indicators').textContent(), /hxxps/);
+    assert.equal(await page.locator('#view-indicators a').count(), 0);
+    await page.locator('[data-tab="headers"]').click();
+    assert.match(await page.locator('#view-headers').textContent(), /SPF: fail/);
+    await page.locator('[data-tab="findings"]').click();
+    await page.locator('#notes').fill('Synthetic investigation: verify gateway logs before escalation.');
+    await page.locator('#disposition').selectOption({ label: 'Escalate — suspected phishing' });
+    for (const extension of ['json', 'md']) {
+      const pending = page.waitForEvent('download');
+      await page.locator(`#export-${extension}`).click();
+      const download = await pending;
+      const content = await fs.readFile(await download.path(), 'utf8');
+      assert.match(content, /Synthetic investigation/);
+      if (extension === 'json') assert.equal(JSON.parse(content).score, 100);
+    }
+    await fs.mkdir(path.join(__dirname, '..', 'docs'), { recursive: true });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: path.join(__dirname, '..', 'docs', 'console.png'), fullPage: true });
+    await page.locator('[data-sample="invoice"]').click();
+    await page.waitForFunction(() => document.querySelector('#score').textContent === '55');
+    assert.equal(await page.locator('#attachment-count').textContent(), '1');
+    await page.locator('[data-sample="routine"]').click();
+    await page.waitForFunction(() => document.querySelector('#score').textContent === '0');
+    await page.locator('#email-file').setInputFiles(path.join(__dirname, '..', 'samples', 'credential-phishing.eml'));
+    await page.waitForFunction(() => !document.querySelector('#analyze').disabled);
+    await page.locator('#analyze').click();
+    await page.waitForFunction(() => document.querySelector('#score').textContent === '100' && !document.querySelector('#results').hidden);
+    await page.locator('#raw-email').fill('Subject: <img src=x onerror="window.injected=true">\nContent-Type: text/html\n\n<script>window.injected=true</script><p>Visible text</p>');
+    await page.locator('#analyze').click();
+    await page.locator('#results').waitFor({ state: 'visible' });
+    assert.equal(await page.evaluate(() => window.injected), undefined);
+    assert.equal(await page.locator('#subject img').count(), 0);
+    await page.locator('[data-tab="message"]').click();
+    assert.match(await page.locator('#view-message').textContent(), /Visible text/);
+    await page.locator('#raw-email').fill('invalid input');
+    await page.locator('#analyze').click();
+    await page.waitForFunction(() => document.querySelector('#error').textContent.length > 0);
+    assert.equal(await page.locator('#results').isVisible(), false);
+    await page.locator('#clear').click();
+    assert.equal(await page.locator('#raw-email').inputValue(), '');
+    assert.equal(await page.locator('#empty').isVisible(), true);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('[data-sample="credential"]').click();
+    await page.locator('#results').waitFor({ state: 'visible' });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+    await page.screenshot({ path: path.join(__dirname, '..', 'docs', 'console-mobile.png'), fullPage: true });
+    assert.deepEqual(errors, []);
+    console.log('Browser workflow passed: samples, tabs, reports, uploads, XSS handling, validation, reset, mobile.');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });
