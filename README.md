@@ -8,7 +8,11 @@
 
 ![Email Phishing Triage Console — inspect, investigate, document](docs/banner.svg)
 
-The browser CI job produces desktop and mobile screenshots as a `console-screenshots` artifact.
+## Console preview
+
+![Credential-phishing investigation in the working console](docs/console.png)
+
+Screenshot captured from the working app by the passing Chromium workflow. Desktop and mobile captures are also available in the `console-screenshots` CI artifact.
 
 Built as a cybersecurity portfolio lab by **Zayar Lin Tun (Henry)**. The project demonstrates MIME parsing, indicator extraction, evidence hashing, explainable detection logic, safe handling of untrusted content, and SOC investigation documentation.
 
