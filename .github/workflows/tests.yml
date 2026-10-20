@@ -33,7 +33,11 @@ jobs:
         run: python app.py &
       - name: Check browser workflow
         run: node tests/browser-smoke.cjs
+      - name: Check five-stage case workflow
+        run: node tests/workflow-browser.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: console-screenshots
-          path: docs/console*.png
+          path: |
+            docs/console*.png
+            docs/workflow*.png
