@@ -10,7 +10,7 @@
 
 ## Console preview
 
-![Credential-phishing investigation in the working console](docs/console.png)
+![Five-stage investigation and sender-reputation review in the working console](docs/workflow.png)
 
 Screenshot captured from the working app by the passing Chromium workflow. Desktop and mobile captures are also available in the `console-screenshots` CI artifact.
 
